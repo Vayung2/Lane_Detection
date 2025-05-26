@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+import subprocess
 import csv
 import os
 
@@ -14,8 +14,36 @@ if not os.path.exists(log_file):
         ])
         writer.writeheader()
 
-def grayscale(img):
-    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# def grayscale(img):         # CPU Version
+#     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+def grayscale(img):          # FPGA Version
+    # Save current frame as RGB raw input
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_rgb.tofile("input.rgb")
+
+    # --- SSH + SCP commands ---
+    remote = "vgupta8@hal-fpga-x86.ncsa.illinois.edu"
+    remote_dir = "~/grayscale_vitis/data"
+
+    # Send to FPGA
+    subprocess.run(["scp", "input.rgb", f"{remote}:{remote_dir}/"], check=True)
+
+    # Run FPGA grayscale
+    subprocess.run([
+        "ssh", remote,
+        "cd ~/grayscale_vitis && scl enable devtoolset-9 'bash -c \""
+        "source /opt/xilinx/Vitis/2022.1/settings64.sh && "
+        "source /opt/xilinx/xrt/setup.sh && "
+        "./host grayscale_kernel.xclbin\"'"
+    ], shell=False, check=True)
+
+    # Retrieve result
+    subprocess.run(["scp", f"{remote}:{remote_dir}/output.pgm", "."], check=True)
+
+    # Load back into OpenCV as grayscale
+    gray = cv2.imread("output.pgm", cv2.IMREAD_GRAYSCALE)
+    return gray
 
 def gaussian_blur(img, kernel_size=5):
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
