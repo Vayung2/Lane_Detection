@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     cl::Context context(device);
     // Correctly build the Binaries vector
     cl::Program::Binaries bins;
-    bins.push_back(std::make_pair((const void*)binary.data(), binary.size()));
+    bins.push_back(binary);
 
     cl::Program program(context, { device }, bins);
     cl_int err;
