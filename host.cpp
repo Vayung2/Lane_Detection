@@ -1,4 +1,6 @@
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
 #define CL_HPP_TARGET_OPENCL_VERSION 120
+
 #include <CL/cl2.hpp>
 #include <fstream>
 #include <iostream>
@@ -46,7 +48,7 @@ int main(int argc, char** argv) {
     cl::Context context(device);
     // Correctly build the Binaries vector
     cl::Program::Binaries bins;
-    bins.push_back({ binary.data(), nb });
+    bins.push_back(std::make_pair((const void*)binary.data(), binary.size()));
 
     cl::Program program(context, { device }, bins);
     cl_int err;
@@ -74,8 +76,21 @@ int main(int argc, char** argv) {
     std::vector<unsigned char> output(GRAY_SIZE);
 
     // Create OpenCL buffers on the device
-    cl::Buffer in_buf(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, IMG_SIZE, input.data(), &err);
-    cl::Buffer out_buf(context, CL_MEM_WRITE_ONLY, GRAY_SIZE, nullptr, &err);
+    cl::Buffer in_buf(
+        context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        static_cast<cl::size_type>(IMG_SIZE),
+        (void*)input.data(),
+        &err
+    );
+
+    cl::Buffer out_buf(
+        context,
+        CL_MEM_WRITE_ONLY,
+        static_cast<cl::size_type>(GRAY_SIZE),
+        nullptr,
+        &err
+    );
 
     // Set kernel arguments
     kernel.setArg(0, in_buf);
