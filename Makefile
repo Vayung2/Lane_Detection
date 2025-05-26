@@ -14,7 +14,7 @@ host:
 	    -I/opt/xilinx/Vitis/2022.1/include \
 	    -I/opt/xilinx/xrt/include \
 	    host.cpp -o host \
-	    -L/opt/xilinx/xrt/lib -lxrt_coreutil
+	    -L/opt/xilinx/xrt/lib -lOpenCL -lxrt_coreutil
 
 clean:
 	rm -f *.xo *.xclbin host
